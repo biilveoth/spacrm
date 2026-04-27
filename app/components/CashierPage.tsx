@@ -76,6 +76,19 @@ interface OrderLine {
 
 const baseTabs = ['Dịch vụ', 'Gói dịch vụ', 'Thẻ tài khoản', 'Sản phẩm'] as const;
 type CashierTab = (typeof baseTabs)[number] | 'Gói đã mua';
+const customerSourceOptions = [
+  'Khách đến trực tiếp',
+  'Đặt lịch online',
+  'Facebook',
+  'Google',
+  'Instagram',
+  'Khách đặt qua điện thoại',
+  'Khách giới thiệu',
+  'Khách giới thiệu khách',
+  'Nhân viên giới thiệu',
+  'Website',
+  'Khác',
+] as const;
 
 const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
 const formatNumber = (value: number) => value.toLocaleString('vi-VN');
@@ -121,10 +134,9 @@ export function CashierPage() {
   const [paymentReceived, setPaymentReceived] = useState(0);
   const [paymentNote, setPaymentNote] = useState('');
   const [isPaymentNoteOpen, setIsPaymentNoteOpen] = useState(false);
+  const [customerSource, setCustomerSource] = useState<(typeof customerSourceOptions)[number]>('Khách đến trực tiếp');
   const [orderLines, setOrderLines] = useState<OrderLine[]>([
-    createOrderLine('svc-2'),
-    createOrderLine('prd-1'),
-    createOrderLine('pkg-1'),
+    
   ]);
 
   const matchedCustomers = useMemo(() => {
@@ -140,7 +152,7 @@ export function CashierPage() {
     customers.find((customer) => customer.id === selectedCustomerId) ||
     null;
 
-  const availableTabs = selectedCustomer ? [...baseTabs, 'Gói đã mua'] : [...baseTabs];
+  const availableTabs: CashierTab[] = selectedCustomer ? [...baseTabs, 'Gói đã mua'] : [...baseTabs];
 
   const purchasedPackageItems = useMemo(() => {
     if (!selectedCustomer) return [];
@@ -183,6 +195,7 @@ export function CashierPage() {
   const subtotal = detailedLines.reduce((sum, line) => sum + line.amount, 0);
   const discountAmount = Math.round((subtotal * discount) / 100);
   const amountDue = Math.max(subtotal - discountAmount + extraFee, 0);
+  const paymentDelta = paymentReceived - amountDue;
   const invoiceTime = '23/04/2026 14:54';
   const quickReceiveAmounts = [500000, 1000000, 2000000, amountDue];
 
@@ -466,14 +479,9 @@ export function CashierPage() {
   };
 
   return (
-    <div className="min-h-full bg-gray-50 p-6">
-      <div className="mb-4">
-        <h1 className="text-lg text-gray-900">Thu ngân</h1>
-        <p className="mt-0.5 text-xs text-gray-500">Tạo đơn thanh toán, chọn khách hàng và kiểm soát công nợ tại quầy</p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
-        <Card className="gap-0 rounded-xl border-gray-200 shadow-none">
+    <div className="min-h-full bg-gradient-to-b from-slate-50 via-rose-50/20 to-blue-50/50 p-3 xl:p-4">
+      <div className="grid grid-cols-1 gap-0 overflow-hidden rounded-[22px] border border-rose-100 bg-white shadow-sm xl:grid-cols-[420px_minmax(0,1fr)]">
+        <Card className="gap-0 rounded-none border-0 border-r border-r-gray-200 bg-white shadow-none">
           <CardContent className="p-4">
             <div className="relative mb-4">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -481,7 +489,7 @@ export function CashierPage() {
                 value={catalogQuery}
                 onChange={(event) => setCatalogQuery(event.target.value)}
                 placeholder="Tìm theo mã, tên dịch vụ, gói hoặc sản phẩm"
-                className="h-11 rounded-xl border border-gray-200 pl-9 pr-12 bg-white"
+                className="h-11 rounded-xl border border-gray-200 bg-white pl-9 pr-12 shadow-sm focus-visible:ring-blue-200"
               />
               <button className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600">
                 <ShoppingCart className="h-4 w-4" />
@@ -493,10 +501,10 @@ export function CashierPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`rounded-lg border px-4 py-2 text-sm transition-colors ${
+                  className={`rounded-lg border px-4 py-2 text-sm transition-all ${
                     activeTab === tab
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:text-blue-600'
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/40 hover:text-blue-600'
                   }`}
                 >
                   {tab}
@@ -504,34 +512,34 @@ export function CashierPage() {
               ))}
             </div>
 
-            <div>
+            <div className="max-h-[calc(100vh-200px)] overflow-y-auto pr-1">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-sm uppercase tracking-wide text-blue-600">{activeSectionTitle}</div>
                 <button className="text-xs text-blue-600 hover:text-blue-700">Xem tất cả</button>
               </div>
               {visibleCatalogItems.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
                   {visibleCatalogItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => addCatalogItem(item)}
-                      className="rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-blue-200"
+                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left transition-all hover:bg-blue-50/40"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${item.tone}`}>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 ring-black/5 ${item.tone}`}>
                           <span className="text-base text-gray-600">{item.name.slice(0, 1)}</span>
                         </div>
                         <div className="min-w-0">
-                          <div className="line-clamp-2 text-sm text-gray-900">{item.name}</div>
-                          <div className="mt-0.5 text-xs text-gray-400">{item.subtitle}</div>
-                          <div className="mt-2 text-sm text-blue-600">{formatCurrency(item.price)}</div>
+                          <div className="line-clamp-1 text-sm text-gray-900">{item.name}</div>
+                          <div className="mt-0.5 text-xs text-gray-400">Thời lượng: {item.subtitle}</div>
                         </div>
                       </div>
+                      <div className="pl-3 text-sm text-gray-800">{formatCurrency(item.price)}</div>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                <div className="rounded-xl border border-dashed border-blue-100 bg-blue-50/40 px-4 py-8 text-center text-sm text-gray-500">
                   {activeTab === 'Gói đã mua'
                     ? 'Khách hàng này chưa có gói đã mua để sử dụng.'
                     : 'Không có dữ liệu phù hợp với bộ lọc hiện tại.'}
@@ -541,8 +549,8 @@ export function CashierPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          <Card className="gap-0 rounded-xl border-gray-200 shadow-none">
+        <div className="space-y-0 bg-white">
+          <Card className="gap-0 rounded-none border-0 bg-white shadow-none">
             <CardContent className="p-4">
               <div className="mb-4 flex gap-3">
                 <div className="relative flex-1">
@@ -551,21 +559,21 @@ export function CashierPage() {
                     value={customerQuery}
                     onChange={(event) => setCustomerQuery(event.target.value)}
                     placeholder="Tìm khách hàng (F4)"
-                    className="h-11 rounded-xl border border-gray-200 bg-white pl-9 pr-3"
+                    className="h-11 rounded-xl border border-gray-200 bg-white pl-9 pr-3 shadow-sm focus-visible:ring-blue-200"
                   />
                 </div>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setShowAddCustomerModal(true)}
-                  className="h-11 w-11 rounded-lg border-gray-200 text-gray-600"
+                  className="h-11 w-11 rounded-lg border-gray-200 text-gray-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 >
                   <UserPlus className="h-4 w-4" />
                 </Button>
               </div>
 
               {selectedCustomer ? (
-                <div className="mb-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50/30 px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12 bg-blue-100 text-blue-700">
@@ -601,7 +609,7 @@ export function CashierPage() {
               ) : null}
 
               {customerQuery && (
-                <div className="mb-4 rounded-xl border border-gray-200 bg-white p-2">
+                <div className="mb-4 rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
                   {matchedCustomers.length > 0 ? (
                     <div className="space-y-1">
                       {matchedCustomers.map((customer) => (
@@ -630,9 +638,34 @@ export function CashierPage() {
                 </div>
               )}
 
-              <div className="overflow-hidden rounded-xl border border-gray-200">
+              <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-blue-100 bg-blue-50/30 p-3 text-xs text-gray-600 sm:grid-cols-3">
+                <div>
+                  <div className="text-gray-500">Dòng hàng</div>
+                  <div className="mt-0.5 text-sm text-gray-900">{orderLines.length}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Tạm tính</div>
+                  <div className="mt-0.5 text-sm text-gray-900">{formatCurrency(subtotal)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Khách cần trả</div>
+                  <div className="mt-0.5 text-sm text-blue-600">{formatCurrency(amountDue)}</div>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                {orderLines.length === 0 ? (
+                  <div className="relative flex min-h-[calc(100vh-360px)] items-center justify-center bg-gradient-to-br from-rose-50/70 via-violet-50/55 to-blue-50/70">
+                    <div className="text-center">
+                      <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 text-gray-300">
+                        <ShoppingCart className="h-6 w-6" />
+                      </div>
+                      <div className="text-sm text-gray-500">Chưa có dịch vụ, sản phẩm nào</div>
+                    </div>
+                  </div>
+                ) : (
                 <Table>
-                  <TableHeader className="bg-gray-50">
+                  <TableHeader className="bg-slate-50/90">
                     <TableRow className="hover:bg-gray-50">
                       <TableHead className="w-10 px-4 text-xs text-gray-500">#</TableHead>
                       <TableHead className="px-3 text-xs text-gray-500">Dịch vụ / Sản phẩm</TableHead>
@@ -646,7 +679,7 @@ export function CashierPage() {
                   </TableHeader>
                   <TableBody>
                     {detailedLines.map((line, index) => (
-                      <TableRow key={line.id} className="hover:bg-white">
+                      <TableRow key={line.id} className="transition-colors odd:bg-white even:bg-slate-50/30 hover:bg-blue-50/40">
                         <TableCell className="px-4 text-sm text-gray-500">{index + 1}</TableCell>
                         <TableCell className="px-3 py-4">
                           <div className="flex items-center gap-3">
@@ -721,13 +754,13 @@ export function CashierPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => removeLine(line.id)}
-                              className="rounded-lg border border-gray-200 p-2 text-gray-400 transition-colors hover:border-red-200 hover:text-red-500"
+                              className="rounded-lg border border-gray-200 p-2 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button className="rounded-lg border border-gray-200 p-2 text-gray-400 transition-colors hover:border-blue-200 hover:text-blue-600">
+                                <button className="rounded-lg border border-gray-200 p-2 text-gray-400 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
                                   <EllipsisVertical className="h-4 w-4" />
                                 </button>
                               </DropdownMenuTrigger>
@@ -746,17 +779,33 @@ export function CashierPage() {
                     ))}
                   </TableBody>
                 </Table>
+                )}
               </div>
 
             </CardContent>
           </Card>
 
-          <div className="mt-4 flex justify-end">
+          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+            <Select
+              value={customerSource}
+              onValueChange={(value) => setCustomerSource(value as (typeof customerSourceOptions)[number])}
+            >
+              <SelectTrigger className="h-10 w-[190px] rounded-xl border-gray-200 bg-white text-sm text-gray-700">
+                <SelectValue placeholder="Chọn nguồn khách hàng" />
+              </SelectTrigger>
+              <SelectContent>
+                {customerSourceOptions.map((source) => (
+                  <SelectItem key={source} value={source}>
+                    {source}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               onClick={openPaymentModal}
-              className="h-11 min-w-[180px] rounded-lg bg-blue-600 px-6 text-white hover:bg-blue-700"
+              className="h-10 min-w-[160px] rounded-xl bg-blue-600 px-5 text-white shadow-sm hover:bg-blue-700"
             >
-              Thanh toán
+              Thanh toán {orderLines.length}
             </Button>
           </div>
         </div>
@@ -789,7 +838,7 @@ export function CashierPage() {
       </Dialog>
 
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="top-1/2 left-1/2 h-[min(860px,calc(100vh-3rem))] w-[min(1180px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-[24px] border-gray-200 p-0 shadow-2xl sm:max-w-none">
+        <DialogContent className="top-1/2 left-1/2 h-[min(860px,calc(100vh-2rem))] w-[min(1220px,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-[24px] border-blue-100/80 bg-gradient-to-br from-white via-blue-50/30 to-slate-100/70 p-0 shadow-2xl sm:max-w-none">
           <div className="grid h-full min-h-0 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_460px]">
             <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-white px-6 py-5 xl:px-8 xl:py-6">
               <DialogHeader className="mb-5">
@@ -805,9 +854,9 @@ export function CashierPage() {
                 </div>
               </DialogHeader>
 
-              <div className="min-h-0 overflow-y-auto rounded-2xl border border-gray-200">
+              <div className="min-h-0 overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <Table>
-                  <TableHeader className="bg-gray-50">
+                  <TableHeader className="sticky top-0 z-10 bg-gray-50">
                     <TableRow className="hover:bg-gray-50">
                       <TableHead className="w-16 px-5 text-xs text-gray-500">STT</TableHead>
                       <TableHead className="px-5 text-xs text-gray-500">Tên hàng</TableHead>
@@ -818,7 +867,7 @@ export function CashierPage() {
                   </TableHeader>
                   <TableBody>
                     {detailedLines.map((line, index) => (
-                      <TableRow key={`payment-${line.id}`} className="hover:bg-white">
+                      <TableRow key={`payment-${line.id}`} className="transition-colors hover:bg-blue-50/30">
                         <TableCell className="px-5 py-4 text-sm text-gray-700">{index + 1}</TableCell>
                         <TableCell className="px-5 py-4">
                           <div className="text-sm text-gray-900">{line.item.name}</div>
@@ -835,10 +884,12 @@ export function CashierPage() {
               </div>
             </div>
 
-            <div className="relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-l border-gray-100 bg-gray-50/70 p-5 xl:p-6">
-              <div className="mb-3 flex items-center gap-3">
+            <div className="relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border-l border-blue-100 bg-gradient-to-b from-blue-50/70 to-slate-50 p-5 xl:p-6">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-300/15 blur-2xl" />
+              <div className="pointer-events-none absolute -left-10 bottom-10 h-28 w-28 rounded-full bg-indigo-300/10 blur-2xl" />
+              <div className="mb-3 flex items-center gap-3 rounded-2xl border border-blue-100/70 bg-white/80 p-2">
                 <Select value={selectedSellerId} onValueChange={setSelectedSellerId}>
-                  <SelectTrigger className="h-[46px] w-[170px] rounded-xl border-gray-200 bg-white text-sm text-gray-700">
+                  <SelectTrigger className="h-[44px] w-[170px] rounded-xl border-gray-200 bg-white text-sm text-gray-700">
                     <SelectValue placeholder="Chọn nhân viên bán" />
                   </SelectTrigger>
                   <SelectContent>
@@ -849,7 +900,7 @@ export function CashierPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="flex flex-1 items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700">
+                <div className="flex flex-1 items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700">
                   <span className="whitespace-nowrap">{invoiceTime}</span>
                   <div className="flex items-center gap-2 text-gray-400">
                     <CalendarDays className="h-4 w-4" />
@@ -858,8 +909,8 @@ export function CashierPage() {
                 </div>
               </div>
 
-              <div className="min-h-0 overflow-hidden pr-1 pb-24">
-              <Card className="mb-3 gap-0 rounded-2xl border-gray-200 shadow-none">
+              <div className="min-h-0 overflow-y-auto pr-1 pb-3">
+              <Card className="mb-3 gap-0 rounded-2xl border-gray-200/90 bg-white shadow-sm">
                 <CardContent className="space-y-3 p-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-700">Tổng tiền hàng</span>
@@ -892,12 +943,12 @@ export function CashierPage() {
                 </CardContent>
               </Card>
 
-              <Card className="gap-0 rounded-2xl border-gray-200 shadow-none">
+              <Card className="gap-0 rounded-2xl border-gray-200/90 bg-white shadow-sm">
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-700">Khách cần trả</span>
-                      <span className="text-[22px] text-blue-600">{formatCurrency(amountDue)}</span>
+                      <span className="rounded-lg bg-blue-50 px-2 py-0.5 text-[22px] text-blue-600">{formatCurrency(amountDue)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <span className="text-gray-700">Khách thanh toán</span>
@@ -909,16 +960,16 @@ export function CashierPage() {
                       />
                     </div>
 
-                    <div className="rounded-2xl bg-gray-100 p-1">
+                    <div className="rounded-2xl bg-gray-100/90 p-1">
                       <div className="grid grid-cols-4 gap-1">
                         {['Tiền mặt', 'Chuyển khoản', 'Thẻ', 'Ví'].map((method) => (
                           <button
                             key={method}
                             onClick={() => setPaymentMethod(method)}
-                            className={`rounded-xl px-2 py-1.5 text-sm whitespace-nowrap transition-colors ${
+                            className={`rounded-xl px-2 py-1.5 text-sm whitespace-nowrap transition-all ${
                               paymentMethod === method
-                                ? 'bg-white text-blue-600 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
+                                ? 'bg-gradient-to-b from-white to-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100'
+                                : 'text-gray-500 hover:bg-white hover:text-gray-700'
                             }`}
                           >
                             {method}
@@ -932,15 +983,29 @@ export function CashierPage() {
                         <button
                           key={amount}
                           onClick={() => setPaymentReceived(amount)}
-                          className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                          className={`rounded-full border px-4 py-1.5 text-sm transition-all ${
                             paymentReceived === amount
-                              ? 'border-blue-600 bg-blue-50 text-blue-600'
-                              : 'border-gray-200 bg-white text-gray-600 hover:border-blue-200'
+                              ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
+                              : 'border-gray-200 bg-white text-gray-600 hover:-translate-y-0.5 hover:border-blue-200'
                           }`}
                         >
                           {formatCurrency(amount)}
                         </button>
                       ))}
+                    </div>
+
+                    <div className={`rounded-xl border px-3 py-2 text-sm ${
+                      paymentDelta === 0
+                        ? 'border-gray-200 bg-gray-50 text-gray-600'
+                        : paymentDelta > 0
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-700'
+                    }`}>
+                      {paymentDelta === 0
+                        ? 'Đã thanh toán đủ'
+                        : paymentDelta > 0
+                          ? `Tiền thừa: ${formatCurrency(paymentDelta)}`
+                          : `Còn thiếu: ${formatCurrency(Math.abs(paymentDelta))}`}
                     </div>
 
                     <Separator className="my-0.5" />
@@ -967,10 +1032,10 @@ export function CashierPage() {
                 </CardContent>
               </Card>
               </div>
-              <div className="absolute right-6 bottom-6 z-30">
+              <div className="mt-3 border-t border-blue-100/80 bg-white/70 px-1 pt-3">
                 <Button
                   onClick={handleCompletePayment}
-                  className="h-11 min-w-[220px] rounded-xl bg-blue-600 px-8 text-white shadow-lg hover:bg-blue-700"
+                  className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-8 text-white shadow-[0_10px_24px_-10px_rgba(37,99,235,0.65)] transition-all hover:-translate-y-0.5 hover:from-blue-700 hover:to-blue-600"
                 >
                   Hoàn thành
                 </Button>
