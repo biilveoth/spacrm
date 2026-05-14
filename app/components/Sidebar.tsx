@@ -24,7 +24,7 @@ const menuItems = [
   { icon: 'Heart', label: 'Chăm sóc khách hàng', path: '#' },
   { icon: 'MessageSquare', label: 'Hội thoại', path: '#' },
   { icon: 'Image', label: 'Thư viện ảnh', path: '#' },
-  { icon: 'Settings', label: 'Cài đặt', path: '#' },
+  { icon: 'Settings', label: 'Cài đặt', path: '/settings' },
 ];
 
 export function Sidebar() {

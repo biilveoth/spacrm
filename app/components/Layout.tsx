@@ -6,6 +6,8 @@ const titleMap: Record<string, string> = {
   '/customers': 'Khách hàng',
   '/cashier': 'Thu ngân',
   '/cashbook': 'Sổ quỹ',
+  '/settings': 'Cài đặt',
+  '/tags': 'Thẻ tag',
 };
 
 export function Layout() {

@@ -6,6 +6,7 @@ import { ConversationPage } from './components/ConversationPage';
 import { CashierPage } from './components/CashierPage';
 import { CashbookPage } from './components/CashbookPage';
 import { TagManagementPage } from './components/tags/TagManagementPage';
+import { SettingsPage } from './components/SettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: 'cashier', Component: CashierPage },
       { path: 'cashbook', Component: CashbookPage },
       { path: 'tags', Component: TagManagementPage },
+      { path: 'settings', Component: SettingsPage },
     ],
   },
 ]);
