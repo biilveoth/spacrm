@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import {
   CalendarDays,
   Check,
@@ -73,6 +74,17 @@ type ColumnKey =
   | 'note'
   | 'cashFund'
   | 'status';
+
+type InvoiceStatus = 'Chưa thanh toán' | 'Thanh toán một phần' | 'Đã thanh toán';
+
+interface InvoiceSummary {
+  code: string;
+  time: string;
+  total: number;
+  receivedBefore: number;
+  payment: number;
+  status: InvoiceStatus;
+}
 
 interface CashbookRecord {
   id: string;
