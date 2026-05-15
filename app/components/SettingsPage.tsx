@@ -176,6 +176,18 @@ const permissionCatalog: PermissionCategory[] = [
       { id: 'customers.edit', label: 'Cập nhật hồ sơ khách hàng' },
       { id: 'customers.delete', label: 'Xóa khách hàng' },
       { id: 'customers.vip', label: 'Xem khách hàng VIP và dữ liệu nhạy cảm' },
+      { id: 'customers.export', label: 'Xuất Excel danh sách khách hàng' },
+    ],
+  },
+  {
+    id: 'tags',
+    title: 'Thẻ tag',
+    description: 'Quản lý thẻ tag, quy tắc tự động và nhật ký thực thi.',
+    permissions: [
+      { id: 'tags.view', label: 'Xem danh sách thẻ tag' },
+      { id: 'tags.rules', label: 'Quản lý quy tắc tự động' },
+      { id: 'tags.logs', label: 'Xem nhật ký thực thi' },
+      { id: 'tags.export', label: 'Xuất Excel nhật ký thực thi' },
     ],
   },
   {
@@ -224,6 +236,7 @@ const permissionCatalog: PermissionCategory[] = [
       { id: 'cashbook.pay', label: 'Tạo phiếu chi' },
       { id: 'cashbook.edit', label: 'Sửa phiếu thu chi' },
       { id: 'cashbook.cancel', label: 'Hủy phiếu thu chi' },
+      { id: 'cashbook.export', label: 'Xuất file sổ quỹ' },
     ],
   },
   {
@@ -911,53 +924,85 @@ export function SettingsPage() {
             )}
 
             {activePanel === 'roles' && (
-              <section className="grid grid-cols-2 gap-4">
-            {roles.map((role) => (
-              <div key={role.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-blue-600" />
-                      <h2 className="truncate text-base text-gray-950">{role.name}</h2>
-                      {role.system && (
-                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">Hệ thống</span>
-                      )}
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-gray-500">{role.description}</p>
-                    <p className="mt-4 text-xs text-gray-500">{countPermissions(role.permissions)} quyền được bật</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
-                    {roleUsage[role.id] || 0} người dùng
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => openEditRole(role)}
-                    className="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-800 hover:bg-gray-50"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    Sửa quyền
-                  </button>
-                  <button
-                    onClick={() => openCopyRole(role)}
-                    className="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-800 hover:bg-gray-50"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Sao chép
-                  </button>
-                  {!role.system && (
-                    <button
-                      onClick={() => deleteRole(role.id)}
-                      disabled={(roleUsage[role.id] || 0) > 0}
-                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-pink-500 px-3 text-sm text-pink-600 hover:bg-pink-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 disabled:hover:bg-white"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Xóa
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                <table className="w-full min-w-[1100px] text-sm">
+                  <thead>
+                    <tr className="bg-gray-100 text-left text-xs text-gray-500">
+                      <th className="rounded-l-lg px-4 py-3">Vai trò</th>
+                      <th className="px-4 py-3">Mô tả</th>
+                      <th className="px-4 py-3">Số quyền</th>
+                      <th className="px-4 py-3">Người dùng</th>
+                      <th className="px-4 py-3">Loại vai trò</th>
+                      <th className="rounded-r-lg px-4 py-3 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roles.map((role) => {
+                      const usersCount = roleUsage[role.id] || 0;
+                      const canDelete = !role.system && usersCount === 0;
+                      return (
+                        <tr key={role.id} className="border-b border-gray-50 last:border-0">
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                                <ShieldCheck className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="truncate text-sm text-gray-950">{role.name}</div>
+                                <div className="text-xs text-gray-500">Mã: {role.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="max-w-[420px] px-4 py-4 text-gray-600">
+                            <div className="line-clamp-2">{role.description}</div>
+                          </td>
+                          <td className="px-4 py-4 text-gray-900">
+                            {countPermissions(role.permissions)} quyền
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+                              {usersCount} người dùng
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs ${
+                              role.system ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {role.system ? 'Hệ thống' : 'Tùy chỉnh'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => openEditRole(role)}
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-800 hover:bg-gray-50"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                                Sửa quyền
+                              </button>
+                              <button
+                                onClick={() => openCopyRole(role)}
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-800 hover:bg-gray-50"
+                              >
+                                <Copy className="h-4 w-4" />
+                                Sao chép
+                              </button>
+                              <button
+                                onClick={() => deleteRole(role.id)}
+                                disabled={!canDelete}
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-pink-500 px-3 text-sm text-pink-600 hover:bg-pink-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 disabled:hover:bg-white"
+                                title={role.system ? 'Không thể xóa vai trò hệ thống' : usersCount > 0 ? 'Không thể xóa vai trò đang có người dùng' : 'Xóa vai trò'}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Xóa
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </section>
             )}
           </>
@@ -1542,6 +1587,7 @@ function PermissionDialog({
                       }`}
                     >
                       <button
+                        type="button"
                         onClick={() => toggleCategory(category)}
                         className="mb-3 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left"
                       >
@@ -1768,7 +1814,7 @@ function RoleDialog({
                       isFocusedGroup || isAllSelected ? 'border-blue-400 bg-blue-50/20' : 'border-gray-300 bg-white'
                     }`}
                   >
-                    <button onClick={() => toggleCategory(category)} className="mb-4 flex w-full items-center justify-between text-left">
+                    <button type="button" onClick={() => toggleCategory(category)} className="mb-4 flex w-full items-center justify-between text-left">
                       <span className="flex items-center gap-3">
                         <CheckBoxMark checked={isAllSelected} size="lg" />
                         <span>
@@ -1949,20 +1995,28 @@ function PermissionCheckRow({
   onChange: () => void;
 }) {
   return (
-    <label className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm text-gray-700 transition-colors ${
+    <button
+      type="button"
+      aria-pressed={checked}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onChange();
+      }}
+      className={`flex min-h-[42px] w-full cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm text-gray-700 transition-colors ${
       checked ? 'border-blue-200 bg-blue-50/30 hover:bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-    }`}>
+    }`}
+    >
       <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
         checked ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-transparent'
       }`}>
         <Check className="h-3 w-3" />
       </span>
-      <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
-      <span>
+      <span className="min-w-0">
         <span className="block">{label}</span>
         {note && <span className="block text-xs text-gray-400">{note}</span>}
       </span>
-    </label>
+    </button>
   );
 }
 
