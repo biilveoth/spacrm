@@ -54,14 +54,29 @@ type CashFund = 'Tiền mặt' | 'Ngân hàng' | 'Ví điện tử' | 'Tổng qu
 type CashbookStatus = 'Đã thanh toán' | 'Đã huỷ';
 type FilterStatus = 'Tất cả' | CashbookStatus;
 type PayerReceiverType = 'Khách hàng' | 'Nhà cung cấp' | 'Nhân viên' | 'Khác';
-type IncomeExpenseFilter = 'Chi trả lương NV' | 'Tiền hàng' | 'Khác';
+type IncomeExpenseFilter = 'Tất cả' | 'Chi trả lương NV' | 'Tiền hàng' | 'Khác';
 type DocumentType = 'Phiếu thu' | 'Phiếu chi';
 type BusinessResult = 'Có hạch toán' | 'Không có hạch toán';
 type VoucherMethod = 'Tiền mặt' | 'Chuyển khoản' | 'Ví điện tử';
+type VoucherSource = 'Thủ công' | 'Sau hóa đơn đã chốt';
+type SourceFilter = 'Tất cả' | VoucherSource;
+type AdjustmentType =
+  | 'Không áp dụng'
+  | 'Thu thêm'
+  | 'Điều chỉnh tăng'
+  | 'Hoàn tiền'
+  | 'Điều chỉnh giảm'
+  | 'Chênh lệch đối soát tăng'
+  | 'Chênh lệch đối soát giảm';
 type ColumnKey =
   | 'code'
   | 'time'
   | 'transaction'
+  | 'sourceType'
+  | 'relatedInvoice'
+  | 'relatedTreatmentSession'
+  | 'adjustmentType'
+  | 'adjustmentReason'
   | 'creator'
   | 'branch'
   | 'incomeExpenseType'
@@ -72,6 +87,7 @@ type ColumnKey =
   | 'amount'
   | 'transferContent'
   | 'note'
+  | 'reconciliationNote'
   | 'cashFund'
   | 'status';
 
@@ -106,6 +122,31 @@ interface CashbookRecord {
   status: CashbookStatus;
   documentType: DocumentType;
   businessResult: BusinessResult;
+  sourceType?: VoucherSource;
+  relatedInvoiceCode?: string;
+  relatedTreatmentSession?: string;
+  adjustmentType?: AdjustmentType;
+  adjustmentReason?: string;
+  reconciliationNote?: string;
+  originalInvoiceTotal?: number;
+  finalizedAt?: string;
+  finalizedBy?: string;
+}
+
+interface RelatedInvoice {
+  code: string;
+  status: 'Nháp' | 'Đã chốt' | 'Đã thanh toán' | 'Hoàn tất';
+  customerName: string;
+  customerCode: string;
+  customerPhone: string;
+  branch: string;
+  total: number;
+  paid: number;
+  finalizedAt: string;
+  finalizedBy: string;
+  cashier: string;
+  treatmentSession?: string;
+  therapist?: string;
 }
 
 const records: CashbookRecord[] = [
@@ -256,6 +297,299 @@ const records: CashbookRecord[] = [
     documentType: 'Phiếu thu',
     businessResult: 'Có hạch toán',
   },
+  {
+    id: '8',
+    code: 'PTBS000041',
+    time: '23/04/2026 17:05',
+    transaction: 'HDN-240423-001',
+    creator: 'Trần Minh Anh',
+    branch: 'Chi nhánh trung tâm',
+    incomeExpenseType: 'Thu bổ sung sau hóa đơn đã chốt',
+    accountNumber: '9704229200',
+    payerReceiverType: 'Khách hàng',
+    payerReceiver: 'Phạm Thị Hương',
+    payerReceiverCode: 'KH0004',
+    payerReceiverPhone: '*****20473',
+    amount: 100000,
+    transferContent: 'Thu bổ sung hóa đơn HDN-240423-001',
+    note: 'Khách thanh toán bổ sung phần thiếu sau đối soát.',
+    cashFund: 'Ngân hàng',
+    status: 'Đã thanh toán',
+    documentType: 'Phiếu thu',
+    businessResult: 'Có hạch toán',
+    sourceType: 'Sau hóa đơn đã chốt',
+    relatedInvoiceCode: 'HDN-240423-001',
+    relatedTreatmentSession: 'Buổi 2/5 - Laser công nghệ cao - Ngày 19/05/2026 - KTV Nguyễn Thị Hoa',
+    adjustmentType: 'Thu thêm',
+    adjustmentReason: 'Thu thêm do hóa đơn đã chốt thiếu sản phẩm bán.',
+    reconciliationNote: 'Khách xác nhận chuyển khoản bổ sung lúc 17:00.',
+    originalInvoiceTotal: 450000,
+    finalizedAt: '23/04/2026 14:54',
+    finalizedBy: 'Nguyễn Văn A',
+  },
+  {
+    id: '9',
+    code: 'PCBS000018',
+    time: '23/04/2026 17:20',
+    transaction: 'HD034504',
+    creator: 'Phạm Quỳnh Nga',
+    branch: 'Chi nhánh trung tâm',
+    incomeExpenseType: 'Hoàn tiền sau hóa đơn đã chốt',
+    accountNumber: '',
+    payerReceiverType: 'Khách hàng',
+    payerReceiver: 'Đỗ Thị Lý',
+    payerReceiverCode: 'KH001339',
+    payerReceiverPhone: '0917201428',
+    amount: 200000,
+    transferContent: '',
+    note: 'Hoàn tiền do tính sai giá dịch vụ.',
+    cashFund: 'Tiền mặt',
+    status: 'Đã thanh toán',
+    documentType: 'Phiếu chi',
+    businessResult: 'Có hạch toán',
+    sourceType: 'Sau hóa đơn đã chốt',
+    relatedInvoiceCode: 'HD034504',
+    relatedTreatmentSession: '',
+    adjustmentType: 'Hoàn tiền',
+    adjustmentReason: 'Hoàn tiền do tính sai giá dịch vụ.',
+    reconciliationNote: 'Quản lý chi nhánh đã duyệt hoàn tiền.',
+    originalInvoiceTotal: 2100000,
+    finalizedAt: '22/04/2026 18:24',
+    finalizedBy: 'Phạm Quỳnh Nga',
+  },
+  {
+    id: '10',
+    code: 'PTBS000042',
+    time: '24/04/2026 09:12',
+    transaction: 'HD034510',
+    creator: 'Nguyễn Thị Hoa',
+    branch: 'Chi nhánh trung tâm',
+    incomeExpenseType: 'Điều chỉnh tăng sau đối soát',
+    accountNumber: '',
+    payerReceiverType: 'Khách hàng',
+    payerReceiver: 'Trần Kim Thơm',
+    payerReceiverCode: 'KH001404',
+    payerReceiverPhone: '0986189489',
+    amount: 150000,
+    transferContent: '',
+    note: 'Điều chỉnh tăng do sai lệch quỹ cuối ngày.',
+    cashFund: 'Tiền mặt',
+    status: 'Đã thanh toán',
+    documentType: 'Phiếu thu',
+    businessResult: 'Có hạch toán',
+    sourceType: 'Sau hóa đơn đã chốt',
+    relatedInvoiceCode: 'HD034510',
+    relatedTreatmentSession: '',
+    adjustmentType: 'Điều chỉnh tăng',
+    adjustmentReason: 'Điều chỉnh tăng do phát hiện nhập thiếu phụ phí sau khi hóa đơn đã chốt.',
+    reconciliationNote: 'Kế toán xác nhận lệch trong biên bản đối soát ngày 24/04.',
+    originalInvoiceTotal: 1200000,
+    finalizedAt: '23/04/2026 13:16',
+    finalizedBy: 'Trần Minh Anh',
+  },
+  {
+    id: '11',
+    code: 'PCBS000019',
+    time: '24/04/2026 10:40',
+    transaction: 'HDN-240423-001',
+    creator: 'Trần Minh Anh',
+    branch: 'Chi nhánh trung tâm',
+    incomeExpenseType: 'Điều chỉnh giảm sau hóa đơn đã chốt',
+    accountNumber: '9704229200',
+    payerReceiverType: 'Khách hàng',
+    payerReceiver: 'Phạm Thị Hương',
+    payerReceiverCode: 'KH0004',
+    payerReceiverPhone: '*****20473',
+    amount: 50000,
+    transferContent: 'Hoàn chênh lệch hóa đơn HDN-240423-001',
+    note: 'Hoàn phần chênh lệch do áp sai ưu đãi.',
+    cashFund: 'Ngân hàng',
+    status: 'Đã thanh toán',
+    documentType: 'Phiếu chi',
+    businessResult: 'Có hạch toán',
+    sourceType: 'Sau hóa đơn đã chốt',
+    relatedInvoiceCode: 'HDN-240423-001',
+    relatedTreatmentSession: 'Buổi 2/5 - Laser công nghệ cao - Ngày 19/05/2026 - KTV Nguyễn Thị Hoa',
+    adjustmentType: 'Điều chỉnh giảm',
+    adjustmentReason: 'Hoàn lại phần chênh do áp sai chương trình ưu đãi sau khi hóa đơn đã chốt.',
+    reconciliationNote: 'Khách đồng ý nhận hoàn qua chuyển khoản. Quản lý duyệt lúc 10:30.',
+    originalInvoiceTotal: 450000,
+    finalizedAt: '23/04/2026 14:54',
+    finalizedBy: 'Nguyễn Văn A',
+  },
+  {
+    id: '12',
+    code: 'PTBS000043',
+    time: '24/04/2026 14:05',
+    transaction: 'HD034469',
+    creator: 'Lê Thu Trang',
+    branch: 'Chi nhánh trung tâm',
+    incomeExpenseType: 'Chênh lệch đối soát tăng',
+    accountNumber: 'Momo Business',
+    payerReceiverType: 'Khách hàng',
+    payerReceiver: 'Hoàng Thị Chiến',
+    payerReceiverCode: 'KH001803',
+    payerReceiverPhone: '0965364203',
+    amount: 80000,
+    transferContent: 'Bù chênh lệch ví điện tử HD034469',
+    note: 'Ghi nhận chênh lệch đối soát ví điện tử.',
+    cashFund: 'Ví điện tử',
+    status: 'Đã thanh toán',
+    documentType: 'Phiếu thu',
+    businessResult: 'Không có hạch toán',
+    sourceType: 'Sau hóa đơn đã chốt',
+    relatedInvoiceCode: 'HD034469',
+    relatedTreatmentSession: '',
+    adjustmentType: 'Chênh lệch đối soát tăng',
+    adjustmentReason: 'Chênh lệch đối soát ví điện tử ghi nhận thiếu so với hóa đơn đã chốt.',
+    reconciliationNote: 'Đối soát với sao kê ví điện tử ngày 24/04.',
+    originalInvoiceTotal: 1450000,
+    finalizedAt: '21/04/2026 12:21',
+    finalizedBy: 'Lê Thu Trang',
+  },
+  {
+    id: '13',
+    code: 'PCBS000020',
+    time: '24/04/2026 15:18',
+    transaction: 'HD033832',
+    creator: 'Nguyễn Văn A',
+    branch: 'Chi nhánh trung tâm',
+    incomeExpenseType: 'Chênh lệch đối soát giảm',
+    accountNumber: '9704229200',
+    payerReceiverType: 'Khách hàng',
+    payerReceiver: 'Trần Thị Tư',
+    payerReceiverCode: 'KH001844',
+    payerReceiverPhone: '0354766004',
+    amount: 30000,
+    transferContent: 'Điều chỉnh giảm hóa đơn HD033832',
+    note: 'Phiếu hủy do nhập trùng khoản chênh lệch.',
+    cashFund: 'Ngân hàng',
+    status: 'Đã huỷ',
+    documentType: 'Phiếu chi',
+    businessResult: 'Không có hạch toán',
+    sourceType: 'Sau hóa đơn đã chốt',
+    relatedInvoiceCode: 'HD033832',
+    relatedTreatmentSession: '',
+    adjustmentType: 'Chênh lệch đối soát giảm',
+    adjustmentReason: 'Điều chỉnh giảm do sai lệch sau đối soát chuyển khoản.',
+    reconciliationNote: 'Phiếu đã bị hủy vì phát hiện trùng với chứng từ PCBS000017.',
+    originalInvoiceTotal: 950000,
+    finalizedAt: '23/04/2026 08:48',
+    finalizedBy: 'Lê Thu Trang',
+  },
+  {
+    id: '14',
+    code: 'PTBS000044',
+    time: '25/04/2026 08:30',
+    transaction: 'HD034504',
+    creator: 'Phạm Quỳnh Nga',
+    branch: 'Cơ sở Thanh Xuân',
+    incomeExpenseType: 'Thu bổ sung sau hóa đơn đã chốt',
+    accountNumber: 'MB Bank - 46881999',
+    payerReceiverType: 'Khách hàng',
+    payerReceiver: 'Đỗ Thị Lý',
+    payerReceiverCode: 'KH001339',
+    payerReceiverPhone: '0917201428',
+    amount: 250000,
+    transferContent: 'Thu thêm dịch vụ còn thiếu HD034504',
+    note: 'Thu thêm do thiếu dòng dịch vụ phụ trợ.',
+    cashFund: 'Ngân hàng',
+    status: 'Đã thanh toán',
+    documentType: 'Phiếu thu',
+    businessResult: 'Có hạch toán',
+    sourceType: 'Sau hóa đơn đã chốt',
+    relatedInvoiceCode: 'HD034504',
+    relatedTreatmentSession: '',
+    adjustmentType: 'Thu thêm',
+    adjustmentReason: 'Thu thêm do sau khi chốt mới phát hiện thiếu dịch vụ phụ trợ cần tính tiền.',
+    reconciliationNote: 'Khách thanh toán bổ sung bằng chuyển khoản, đã đối soát với sao kê ngân hàng.',
+    originalInvoiceTotal: 2100000,
+    finalizedAt: '22/04/2026 18:24',
+    finalizedBy: 'Phạm Quỳnh Nga',
+  },
+];
+
+const relatedInvoices: RelatedInvoice[] = [
+  {
+    code: 'HDN-240423-001',
+    status: 'Đã thanh toán',
+    customerName: 'Phạm Thị Hương',
+    customerCode: 'KH0004',
+    customerPhone: '*****20473',
+    branch: 'Chi nhánh trung tâm',
+    total: 450000,
+    paid: 450000,
+    finalizedAt: '23/04/2026 14:54',
+    finalizedBy: 'Nguyễn Văn A',
+    cashier: 'Nguyễn Văn A',
+    treatmentSession: 'Buổi 2/5 - Laser công nghệ cao - Ngày 19/05/2026 - KTV Nguyễn Thị Hoa',
+    therapist: 'Nguyễn Thị Hoa',
+  },
+  {
+    code: 'HD034504',
+    status: 'Đã chốt',
+    customerName: 'Đỗ Thị Lý',
+    customerCode: 'KH001339',
+    customerPhone: '0917201428',
+    branch: 'Chi nhánh trung tâm',
+    total: 2100000,
+    paid: 2100000,
+    finalizedAt: '22/04/2026 18:24',
+    finalizedBy: 'Phạm Quỳnh Nga',
+    cashier: 'Phạm Quỳnh Nga',
+  },
+  {
+    code: 'HD034510',
+    status: 'Đã thanh toán',
+    customerName: 'Trần Kim Thơm',
+    customerCode: 'KH001404',
+    customerPhone: '0986189489',
+    branch: 'Chi nhánh trung tâm',
+    total: 1200000,
+    paid: 1200000,
+    finalizedAt: '23/04/2026 13:16',
+    finalizedBy: 'Trần Minh Anh',
+    cashier: 'Trần Minh Anh',
+  },
+  {
+    code: 'HD034469',
+    status: 'Hoàn tất',
+    customerName: 'Hoàng Thị Chiến',
+    customerCode: 'KH001803',
+    customerPhone: '0965364203',
+    branch: 'Chi nhánh trung tâm',
+    total: 1450000,
+    paid: 1450000,
+    finalizedAt: '21/04/2026 12:21',
+    finalizedBy: 'Lê Thu Trang',
+    cashier: 'Lê Thu Trang',
+  },
+  {
+    code: 'HD033832',
+    status: 'Đã chốt',
+    customerName: 'Trần Thị Tư',
+    customerCode: 'KH001844',
+    customerPhone: '0354766004',
+    branch: 'Chi nhánh trung tâm',
+    total: 950000,
+    paid: 950000,
+    finalizedAt: '23/04/2026 08:48',
+    finalizedBy: 'Lê Thu Trang',
+    cashier: 'Lê Thu Trang',
+  },
+  {
+    code: 'HD-DRAFT-001',
+    status: 'Nháp',
+    customerName: 'Nguyễn Thị Nhật',
+    customerCode: 'KH0005',
+    customerPhone: '*****54673',
+    branch: 'Chi nhánh trung tâm',
+    total: 650000,
+    paid: 0,
+    finalizedAt: '',
+    finalizedBy: '',
+    cashier: 'Nguyễn Văn A',
+  },
 ];
 
 const cashFundOptions: CashFund[] = ['Tiền mặt', 'Ngân hàng', 'Ví điện tử', 'Tổng quỹ'];
@@ -264,15 +598,34 @@ const voucherTypeOptionsByMode: Record<DocumentType, string[]> = {
   'Phiếu thu': ['Thu nhập khác', 'Thu tiền khách trả', 'Thu khác'],
   'Phiếu chi': ['Chi phí khác', 'Chi trả lương NV', 'Chi tiền hàng'],
 };
+const adjustmentOptionsByMode: Record<DocumentType, AdjustmentType[]> = {
+  'Phiếu thu': ['Thu thêm', 'Điều chỉnh tăng', 'Chênh lệch đối soát tăng'],
+  'Phiếu chi': ['Hoàn tiền', 'Điều chỉnh giảm', 'Chênh lệch đối soát giảm'],
+};
 const statusOptions: FilterStatus[] = ['Tất cả', 'Đã thanh toán', 'Đã huỷ'];
+const sourceOptions: SourceFilter[] = ['Tất cả', 'Thủ công', 'Sau hóa đơn đã chốt'];
 const payerReceiverTypeOptions: PayerReceiverType[] = ['Khách hàng', 'Nhà cung cấp', 'Nhân viên', 'Khác'];
-const incomeExpenseTypeOptions: IncomeExpenseFilter[] = ['Chi trả lương NV', 'Tiền hàng', 'Khác'];
+const incomeExpenseTypeOptions: IncomeExpenseFilter[] = ['Tất cả', 'Chi trả lương NV', 'Tiền hàng', 'Khác'];
 const documentTypeOptions: Array<'Tất cả' | DocumentType> = ['Tất cả', 'Phiếu thu', 'Phiếu chi'];
 const businessResultOptions: Array<'Tất cả' | BusinessResult> = ['Tất cả', 'Có hạch toán', 'Không có hạch toán'];
+const adjustmentFilterOptions: Array<'Tất cả' | AdjustmentType> = [
+  'Tất cả',
+  'Thu thêm',
+  'Điều chỉnh tăng',
+  'Hoàn tiền',
+  'Điều chỉnh giảm',
+  'Chênh lệch đối soát tăng',
+  'Chênh lệch đối soát giảm',
+];
 const columnOptions: { key: ColumnKey; label: string }[] = [
   { key: 'code', label: 'Mã phiếu' },
   { key: 'time', label: 'Thời gian' },
   { key: 'transaction', label: 'Giao dịch' },
+  { key: 'sourceType', label: 'Nguồn phát sinh' },
+  { key: 'relatedInvoice', label: 'Hóa đơn liên quan' },
+  { key: 'relatedTreatmentSession', label: 'Buổi điều trị liên quan' },
+  { key: 'adjustmentType', label: 'Loại điều chỉnh' },
+  { key: 'adjustmentReason', label: 'Lý do phát sinh' },
   { key: 'creator', label: 'Người tạo' },
   { key: 'branch', label: 'Chi nhánh' },
   { key: 'incomeExpenseType', label: 'Loại thu chi' },
@@ -283,6 +636,7 @@ const columnOptions: { key: ColumnKey; label: string }[] = [
   { key: 'amount', label: 'Số tiền' },
   { key: 'transferContent', label: 'Nội dung chuyển khoản' },
   { key: 'note', label: 'Ghi chú' },
+  { key: 'reconciliationNote', label: 'Ghi chú đối soát' },
   { key: 'cashFund', label: 'Quỹ tiền' },
   { key: 'status', label: 'Trạng thái' },
 ];
@@ -290,6 +644,7 @@ const columnOptions: { key: ColumnKey; label: string }[] = [
 const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
 
 export function CashbookPage() {
+  const [cashbookRecords, setCashbookRecords] = useState(records);
   const [search, setSearch] = useState('');
   const [cashFund, setCashFund] = useState<CashFund>('Tiền mặt');
   const [status, setStatus] = useState<FilterStatus>('Tất cả');
@@ -301,9 +656,12 @@ export function CashbookPage() {
   const [payerReceiverName, setPayerReceiverName] = useState('');
   const [payerReceiverCode, setPayerReceiverCode] = useState('');
   const [payerReceiverPhone, setPayerReceiverPhone] = useState('');
-  const [incomeExpenseType, setIncomeExpenseType] = useState<IncomeExpenseFilter>('Tiền hàng');
+  const [incomeExpenseType, setIncomeExpenseType] = useState<IncomeExpenseFilter>('Tất cả');
   const [documentType, setDocumentType] = useState<'Tất cả' | DocumentType>('Tất cả');
   const [businessResult, setBusinessResult] = useState<'Tất cả' | BusinessResult>('Tất cả');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('Tất cả');
+  const [relatedInvoiceFilter, setRelatedInvoiceFilter] = useState('');
+  const [adjustmentTypeFilter, setAdjustmentTypeFilter] = useState<'Tất cả' | AdjustmentType>('Tất cả');
   const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(
     Object.fromEntries(columnOptions.map((column) => [column.key, true])) as Record<ColumnKey, boolean>,
   );
@@ -327,6 +685,12 @@ export function CashbookPage() {
   const [voucherAccount, setVoucherAccount] = useState('');
   const [voucherAmount, setVoucherAmount] = useState('0');
   const [voucherNote, setVoucherNote] = useState('');
+  const [voucherSource, setVoucherSource] = useState<VoucherSource>('Thủ công');
+  const [selectedInvoiceCode, setSelectedInvoiceCode] = useState('');
+  const [adjustmentType, setAdjustmentType] = useState<AdjustmentType>('Không áp dụng');
+  const [adjustmentReason, setAdjustmentReason] = useState('');
+  const [reconciliationNote, setReconciliationNote] = useState('');
+  const [createVoucherError, setCreateVoucherError] = useState('');
   const [isBusinessAccounting, setIsBusinessAccounting] = useState(true);
   const [showAddVoucherTypeModal, setShowAddVoucherTypeModal] = useState(false);
   const [newVoucherTypeName, setNewVoucherTypeName] = useState('');
@@ -358,6 +722,12 @@ export function CashbookPage() {
     setVoucherAccount('');
     setVoucherAmount('0');
     setVoucherNote('');
+    setVoucherSource('Thủ công');
+    setSelectedInvoiceCode('');
+    setAdjustmentType('Không áp dụng');
+    setAdjustmentReason('');
+    setReconciliationNote('');
+    setCreateVoucherError('');
     setIsBusinessAccounting(true);
     setShowCreateVoucherModal(true);
   };
@@ -405,6 +775,93 @@ export function CashbookPage() {
     setVoucherAccount(accountName);
     setShowAddAccountModal(false);
   };
+  const selectedInvoice = relatedInvoices.find((invoice) => invoice.code === selectedInvoiceCode) || null;
+  const applyRelatedInvoice = (invoiceCode: string) => {
+    const invoice = relatedInvoices.find((item) => item.code === invoiceCode);
+    setSelectedInvoiceCode(invoiceCode);
+    if (!invoice) return;
+    setPayerType('Khách hàng');
+    setPayerName(invoice.customerName);
+    setCreateVoucherError(invoice.status === 'Nháp' ? 'Hóa đơn chưa chốt. Vui lòng điều chỉnh trực tiếp tại màn hình Thu ngân.' : '');
+  };
+  const changeVoucherSource = (source: VoucherSource) => {
+    setVoucherSource(source);
+    setCreateVoucherError('');
+    if (source === 'Sau hóa đơn đã chốt') {
+      setPayerType('Khách hàng');
+      setVoucherType(createVoucherMode === 'Phiếu thu' ? 'Thu bổ sung sau hóa đơn đã chốt' : 'Hoàn tiền sau hóa đơn đã chốt');
+      setAdjustmentType(adjustmentOptionsByMode[createVoucherMode][0]);
+    } else {
+      setSelectedInvoiceCode('');
+      setAdjustmentType('Không áp dụng');
+      setAdjustmentReason('');
+      setReconciliationNote('');
+    }
+  };
+  const saveCreateVoucher = () => {
+    const parsedAmount = Number(voucherAmount.replace(/[^\d]/g, ''));
+    if (parsedAmount <= 0) {
+      setCreateVoucherError('Số tiền phải lớn hơn 0.');
+      return;
+    }
+
+    if (voucherSource === 'Sau hóa đơn đã chốt') {
+      if (!selectedInvoice) {
+        setCreateVoucherError('Vui lòng chọn hóa đơn liên quan.');
+        return;
+      }
+      if (selectedInvoice.status === 'Nháp') {
+        setCreateVoucherError('Hóa đơn chưa chốt. Vui lòng điều chỉnh trực tiếp tại màn hình Thu ngân.');
+        return;
+      }
+      if (!adjustmentOptionsByMode[createVoucherMode].includes(adjustmentType)) {
+        setCreateVoucherError('Loại điều chỉnh không phù hợp với loại phiếu đang tạo.');
+        return;
+      }
+      if (!adjustmentReason.trim()) {
+        setCreateVoucherError('Vui lòng nhập lý do phát sinh sau hóa đơn đã chốt.');
+        return;
+      }
+      if (createVoucherMode === 'Phiếu chi' && parsedAmount > selectedInvoice.paid) {
+        setCreateVoucherError('Số tiền hoàn không được vượt quá số tiền đã thanh toán của hóa đơn gốc.');
+        return;
+      }
+    }
+
+    const nextRecord: CashbookRecord = {
+      id: `${Date.now()}`,
+      code: `${createVoucherMode === 'Phiếu thu' ? 'PT' : 'PC'}${String(Date.now()).slice(-6)}`,
+      time: voucherTime,
+      transaction: selectedInvoice?.code || '',
+      creator: 'Nguyễn Văn A',
+      branch: selectedInvoice?.branch || 'Chi nhánh trung tâm',
+      incomeExpenseType: voucherType,
+      accountNumber: voucherAccount,
+      payerReceiverType: payerType,
+      payerReceiver: payerName || selectedInvoice?.customerName || '',
+      payerReceiverCode: selectedInvoice?.customerCode || '',
+      payerReceiverPhone: selectedInvoice?.customerPhone || '',
+      amount: parsedAmount,
+      transferContent: selectedInvoice ? `${voucherType} hóa đơn ${selectedInvoice.code}` : '',
+      note: voucherNote,
+      cashFund: createVoucherFund,
+      status: 'Đã thanh toán',
+      documentType: createVoucherMode,
+      businessResult: isBusinessAccounting ? 'Có hạch toán' : 'Không có hạch toán',
+      sourceType: voucherSource,
+      relatedInvoiceCode: selectedInvoice?.code,
+      relatedTreatmentSession: selectedInvoice?.treatmentSession,
+      adjustmentType,
+      adjustmentReason,
+      reconciliationNote,
+      originalInvoiceTotal: selectedInvoice?.total,
+      finalizedAt: selectedInvoice?.finalizedAt,
+      finalizedBy: selectedInvoice?.finalizedBy,
+    };
+
+    setCashbookRecords((current) => [nextRecord, ...current]);
+    setShowCreateVoucherModal(false);
+  };
   const openEditVoucherModal = (record: CashbookRecord) => {
     setEditingRecord(record);
     setEditVoucherTime(record.time);
@@ -432,8 +889,12 @@ export function CashbookPage() {
   };
 
   const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
-      const matchesSearch = !search.trim() || record.code.toLowerCase().includes(search.trim().toLowerCase());
+    return cashbookRecords.filter((record) => {
+      const normalizedSearch = search.trim().toLowerCase();
+      const matchesSearch = !normalizedSearch ||
+        record.code.toLowerCase().includes(normalizedSearch) ||
+        record.transaction.toLowerCase().includes(normalizedSearch) ||
+        record.payerReceiver.toLowerCase().includes(normalizedSearch);
       const matchesStatus = status === 'Tất cả' || record.status === status;
       const matchesFund = cashFund === 'Tổng quỹ' || record.cashFund === cashFund;
       const recordDate = toDateTime(record.time);
@@ -449,9 +910,14 @@ export function CashbookPage() {
         !payerReceiverCode.trim() || record.payerReceiverCode.toLowerCase().includes(payerReceiverCode.trim().toLowerCase());
       const matchesPayerPhone =
         !payerReceiverPhone.trim() || record.payerReceiverPhone.toLowerCase().includes(payerReceiverPhone.trim().toLowerCase());
-      const matchesIncomeExpense = getIncomeExpenseCategory(record.incomeExpenseType) === incomeExpenseType;
+      const matchesIncomeExpense = incomeExpenseType === 'Tất cả' || getIncomeExpenseCategory(record.incomeExpenseType) === incomeExpenseType;
       const matchesDocumentType = documentType === 'Tất cả' || record.documentType === documentType;
       const matchesBusinessResult = businessResult === 'Tất cả' || record.businessResult === businessResult;
+      const matchesSource = sourceFilter === 'Tất cả' || (record.sourceType || 'Thủ công') === sourceFilter;
+      const matchesRelatedInvoice =
+        !relatedInvoiceFilter.trim() ||
+        (record.relatedInvoiceCode || record.transaction).toLowerCase().includes(relatedInvoiceFilter.trim().toLowerCase());
+      const matchesAdjustmentType = adjustmentTypeFilter === 'Tất cả' || record.adjustmentType === adjustmentTypeFilter;
       return matchesSearch &&
         matchesStatus &&
         matchesFund &&
@@ -464,9 +930,13 @@ export function CashbookPage() {
         matchesPayerPhone &&
         matchesIncomeExpense &&
         matchesDocumentType &&
-        matchesBusinessResult;
+        matchesBusinessResult &&
+        matchesSource &&
+        matchesRelatedInvoice &&
+        matchesAdjustmentType;
     });
   }, [
+    cashbookRecords,
     search,
     cashFund,
     status,
@@ -481,6 +951,9 @@ export function CashbookPage() {
     incomeExpenseType,
     documentType,
     businessResult,
+    sourceFilter,
+    relatedInvoiceFilter,
+    adjustmentTypeFilter,
   ]);
 
   const totalIncome = filteredRecords
@@ -770,6 +1243,36 @@ export function CashbookPage() {
                 ))}
               </select>
             </div>
+
+            <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+              <div className="mb-2 text-xs text-blue-700">Phát sinh sau hóa đơn đã chốt</div>
+              <div className="space-y-2">
+                <select
+                  value={sourceFilter}
+                  onChange={(event) => setSourceFilter(event.target.value as SourceFilter)}
+                  className="h-8 w-full rounded-lg border border-blue-100 bg-white px-3 text-xs text-gray-700"
+                >
+                  {sourceOptions.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+                <input
+                  value={relatedInvoiceFilter}
+                  onChange={(event) => setRelatedInvoiceFilter(event.target.value)}
+                  className="h-8 w-full rounded-lg border border-blue-100 bg-white px-3 text-xs text-gray-700 placeholder:text-gray-400"
+                  placeholder="Mã hóa đơn liên quan"
+                />
+                <select
+                  value={adjustmentTypeFilter}
+                  onChange={(event) => setAdjustmentTypeFilter(event.target.value as 'Tất cả' | AdjustmentType)}
+                  className="h-8 w-full rounded-lg border border-blue-100 bg-white px-3 text-xs text-gray-700"
+                >
+                  {adjustmentFilterOptions.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -795,12 +1298,17 @@ export function CashbookPage() {
           </div>
 
           <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-[2250px] text-xs">
+            <table className="min-w-[3100px] text-xs">
               <thead className="bg-gray-50 text-gray-500">
                 <tr className="border-b border-gray-200">
                   {visibleColumns.code && <th className="px-3 py-2 text-left">Mã phiếu</th>}
                   {visibleColumns.time && <th className="px-3 py-2 text-left">Thời gian</th>}
                   {visibleColumns.transaction && <th className="px-3 py-2 text-left">Giao dịch</th>}
+                  {visibleColumns.sourceType && <th className="px-3 py-2 text-left">Nguồn phát sinh</th>}
+                  {visibleColumns.relatedInvoice && <th className="px-3 py-2 text-left">Hóa đơn liên quan</th>}
+                  {visibleColumns.relatedTreatmentSession && <th className="px-3 py-2 text-left">Buổi điều trị liên quan</th>}
+                  {visibleColumns.adjustmentType && <th className="px-3 py-2 text-left">Loại điều chỉnh</th>}
+                  {visibleColumns.adjustmentReason && <th className="px-3 py-2 text-left">Lý do phát sinh</th>}
                   {visibleColumns.creator && <th className="px-3 py-2 text-left">Người tạo</th>}
                   {visibleColumns.branch && <th className="px-3 py-2 text-left">Chi nhánh</th>}
                   {visibleColumns.incomeExpenseType && <th className="px-3 py-2 text-left">Loại thu chi</th>}
@@ -811,6 +1319,7 @@ export function CashbookPage() {
                   {visibleColumns.amount && <th className="px-3 py-2 text-right">Số tiền</th>}
                   {visibleColumns.transferContent && <th className="px-3 py-2 text-left">Nội dung chuyển khoản</th>}
                   {visibleColumns.note && <th className="px-3 py-2 text-left">Ghi chú</th>}
+                  {visibleColumns.reconciliationNote && <th className="px-3 py-2 text-left">Ghi chú đối soát</th>}
                   {visibleColumns.cashFund && <th className="px-3 py-2 text-left">Quỹ tiền</th>}
                   {visibleColumns.status && <th className="px-3 py-2 text-left">Trạng thái</th>}
                 </tr>
@@ -827,6 +1336,21 @@ export function CashbookPage() {
                       {visibleColumns.code && <td className="px-3 py-2">{record.code}</td>}
                       {visibleColumns.time && <td className="px-3 py-2">{record.time}</td>}
                       {visibleColumns.transaction && <td className="px-3 py-2">{record.transaction || '-'}</td>}
+                      {visibleColumns.sourceType && (
+                        <td className="px-3 py-2">
+                          <span className={`rounded-full px-2 py-0.5 ${
+                            (record.sourceType || 'Thủ công') === 'Sau hóa đơn đã chốt'
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {record.sourceType || 'Thủ công'}
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.relatedInvoice && <td className="px-3 py-2 text-blue-600">{record.relatedInvoiceCode || record.transaction || '-'}</td>}
+                      {visibleColumns.relatedTreatmentSession && <td className="max-w-[280px] truncate px-3 py-2">{record.relatedTreatmentSession || '-'}</td>}
+                      {visibleColumns.adjustmentType && <td className="px-3 py-2">{record.adjustmentType || '-'}</td>}
+                      {visibleColumns.adjustmentReason && <td className="max-w-[260px] truncate px-3 py-2">{record.adjustmentReason || '-'}</td>}
                       {visibleColumns.creator && <td className="px-3 py-2">{record.creator}</td>}
                       {visibleColumns.branch && <td className="px-3 py-2">{record.branch}</td>}
                       {visibleColumns.incomeExpenseType && <td className="px-3 py-2">{record.incomeExpenseType}</td>}
@@ -837,6 +1361,7 @@ export function CashbookPage() {
                       {visibleColumns.amount && <td className="px-3 py-2 text-right">{formatCurrency(record.amount)}</td>}
                       {visibleColumns.transferContent && <td className="px-3 py-2">{record.transferContent || '-'}</td>}
                       {visibleColumns.note && <td className="px-3 py-2">{record.note || '-'}</td>}
+                      {visibleColumns.reconciliationNote && <td className="max-w-[240px] truncate px-3 py-2">{record.reconciliationNote || '-'}</td>}
                       {visibleColumns.cashFund && <td className="px-3 py-2">{record.cashFund}</td>}
                       {visibleColumns.status && (
                         <td className="px-3 py-2">
@@ -903,6 +1428,39 @@ export function CashbookPage() {
                               </div>
                             </div>
 
+                            {(record.sourceType || 'Thủ công') === 'Sau hóa đơn đã chốt' && (
+                              <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                                <div className="mb-3 text-sm text-blue-800">Thông tin phát sinh sau hóa đơn đã chốt</div>
+                                <div className="grid grid-cols-3 gap-x-5 gap-y-3 text-[11px] text-gray-600">
+                                  <DetailField label="Nguồn phát sinh" value={record.sourceType || '-'} />
+                                  <DetailField label="Loại điều chỉnh" value={record.adjustmentType || '-'} />
+                                  <DetailField
+                                    label="Hóa đơn liên quan"
+                                    value={record.relatedInvoiceCode || record.transaction || '-'}
+                                    link
+                                  />
+                                  <DetailField label="Buổi điều trị liên quan" value={record.relatedTreatmentSession || '-'} link={!!record.relatedTreatmentSession} />
+                                  <DetailField
+                                    label="Khách hàng"
+                                    value={`${record.payerReceiver || '-'}${record.payerReceiverCode ? ` - ${record.payerReceiverCode}` : ''}`}
+                                    link
+                                  />
+                                  <DetailField label="Số tiền hóa đơn gốc" value={record.originalInvoiceTotal ? formatCurrency(record.originalInvoiceTotal) : '-'} />
+                                  <DetailField label="Số tiền điều chỉnh" value={formatCurrency(record.amount)} />
+                                  <DetailField label="Ngày chốt hóa đơn" value={record.finalizedAt || '-'} />
+                                  <DetailField label="Thu ngân chốt" value={record.finalizedBy || '-'} />
+                                  <div className="col-span-3">
+                                    <div>Lý do phát sinh</div>
+                                    <div className="mt-1 text-xs text-gray-900">{record.adjustmentReason || '-'}</div>
+                                  </div>
+                                  <div className="col-span-3">
+                                    <div>Ghi chú đối soát</div>
+                                    <div className="mt-1 text-xs text-gray-900">{record.reconciliationNote || '-'}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             <button className="flex h-10 w-full items-center justify-between rounded-xl border border-gray-200 px-3 text-xs text-gray-700">
                               {record.documentType} tự động được tạo gắn với hóa đơn {record.transaction || '---'}
                               <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -953,7 +1511,7 @@ export function CashbookPage() {
               <button className="h-7 rounded-md border border-gray-200 px-2 text-[11px] text-gray-700">1</button>
               <button className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200"><ChevronRight className="h-3 w-3" /></button>
               <button className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200"><ChevronsRight className="h-3 w-3" /></button>
-              <span>1 - {filteredRecords.length} trên tổng số {records.length} phiếu</span>
+              <span>1 - {filteredRecords.length} trên tổng số {cashbookRecords.length} phiếu</span>
             </div>
           </div>
         </section>
@@ -1372,7 +1930,7 @@ export function CashbookPage() {
       </Dialog>
 
       <Dialog open={showCreateVoucherModal} onOpenChange={setShowCreateVoucherModal}>
-        <DialogContent className="top-1/2 left-1/2 w-[min(740px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-[16px] border border-gray-200 p-0 shadow-xl sm:max-w-none [&>button]:hidden">
+        <DialogContent className="top-1/2 left-1/2 max-h-[calc(100vh-2rem)] w-[min(820px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-[16px] border border-gray-200 p-0 shadow-xl sm:max-w-none [&>button]:hidden">
           <DialogTitle className="sr-only">Tạo phiếu {voucherModeLabel} {voucherFundLabel}</DialogTitle>
           <div className="border-b border-gray-200 px-6 py-3">
             <div className="flex items-center justify-between">
@@ -1388,7 +1946,7 @@ export function CashbookPage() {
             </div>
           </div>
 
-          <div className="space-y-3 px-5 py-4">
+          <div className="max-h-[calc(100vh-9rem)] space-y-3 overflow-y-auto px-5 py-4">
             <div>
               <div className="mb-1.5 text-sm text-gray-600">Mã phiếu</div>
               <Input
@@ -1433,6 +1991,103 @@ export function CashbookPage() {
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
                 </div>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="mb-1.5 text-sm text-gray-600">Nguồn phát sinh</div>
+                  <div className="relative">
+                    <select
+                      value={voucherSource}
+                      onChange={(event) => changeVoucherSource(event.target.value as VoucherSource)}
+                      className="h-11 w-full appearance-none rounded-xl border border-blue-100 bg-white px-4 pr-10 text-base text-gray-900"
+                    >
+                      <option>Thủ công</option>
+                      <option>Sau hóa đơn đã chốt</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+                  </div>
+                </div>
+                {voucherSource === 'Sau hóa đơn đã chốt' && (
+                  <div>
+                    <div className="mb-1.5 text-sm text-gray-600">Loại điều chỉnh</div>
+                    <div className="relative">
+                      <select
+                        value={adjustmentType}
+                        onChange={(event) => setAdjustmentType(event.target.value as AdjustmentType)}
+                        className="h-11 w-full appearance-none rounded-xl border border-blue-100 bg-white px-4 pr-10 text-base text-gray-900"
+                      >
+                        {adjustmentOptionsByMode[createVoucherMode].map((option) => (
+                          <option key={option}>{option}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {voucherSource === 'Sau hóa đơn đã chốt' && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <div className="mb-1.5 text-sm text-gray-600">Hóa đơn liên quan</div>
+                    <div className="relative">
+                      <select
+                        value={selectedInvoiceCode}
+                        onChange={(event) => applyRelatedInvoice(event.target.value)}
+                        className={`h-11 w-full appearance-none rounded-xl border bg-white px-4 pr-10 text-base ${
+                          selectedInvoice?.status === 'Nháp' ? 'border-red-200 text-red-600' : 'border-blue-100 text-gray-900'
+                        }`}
+                      >
+                        <option value="">Chọn hóa đơn đã chốt/đã thanh toán</option>
+                        {relatedInvoices.map((invoice) => (
+                          <option key={invoice.code} value={invoice.code}>
+                            {invoice.code} - {invoice.customerName} - {invoice.customerPhone} - {invoice.status}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+                    </div>
+                  </div>
+
+                  {selectedInvoice && (
+                    <div className="grid grid-cols-2 gap-3 rounded-xl bg-white p-3 text-xs text-gray-600">
+                      <InfoPill label="Khách hàng" value={`${selectedInvoice.customerName} - ${selectedInvoice.customerCode}`} />
+                      <InfoPill label="Số điện thoại" value={selectedInvoice.customerPhone} />
+                      <InfoPill label="Chi nhánh" value={selectedInvoice.branch} />
+                      <InfoPill label="Tổng tiền hóa đơn gốc" value={formatCurrency(selectedInvoice.total)} />
+                      <InfoPill label="Ngày chốt" value={selectedInvoice.finalizedAt || '-'} />
+                      <InfoPill label="Thu ngân chốt" value={selectedInvoice.finalizedBy || '-'} />
+                      <div className="col-span-2">
+                        <div className="text-gray-500">Buổi điều trị liên quan</div>
+                        <div className="mt-1 text-gray-900">{selectedInvoice.treatmentSession || 'Không liên kết buổi điều trị cụ thể'}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="mb-1.5 text-sm text-gray-600">Lý do phát sinh <span className="text-red-500">*</span></div>
+                    <Textarea
+                      value={adjustmentReason}
+                      onChange={(event) => setAdjustmentReason(event.target.value)}
+                      placeholder="Ví dụ: Thu thêm do hóa đơn đã chốt thiếu sản phẩm bán."
+                      maxLength={500}
+                      className="min-h-20 rounded-xl border-blue-100 bg-white text-base text-gray-900 placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="mb-1.5 text-sm text-gray-600">Ghi chú đối soát</div>
+                    <Textarea
+                      value={reconciliationNote}
+                      onChange={(event) => setReconciliationNote(event.target.value)}
+                      placeholder="Ai xác nhận, thời điểm phát hiện, cách xử lý đã thống nhất..."
+                      className="min-h-20 rounded-xl border-blue-100 bg-white text-base text-gray-900 placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -1572,6 +2227,12 @@ export function CashbookPage() {
               Hạch toán vào kết quả hoạt động kinh doanh
               <Info className="h-4 w-4 text-gray-500" />
             </label>
+
+            {createVoucherError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {createVoucherError}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4">
@@ -1581,11 +2242,29 @@ export function CashbookPage() {
             >
               Bỏ qua
             </button>
-            <button className="h-10 rounded-xl bg-gray-100 px-6 text-sm text-gray-700">Lưu & in</button>
-            <button className="h-10 rounded-xl bg-blue-600 px-8 text-sm text-white">Lưu</button>
+            <button onClick={saveCreateVoucher} className="h-10 rounded-xl bg-gray-100 px-6 text-sm text-gray-700">Lưu & in</button>
+            <button onClick={saveCreateVoucher} className="h-10 rounded-xl bg-blue-600 px-8 text-sm text-white">Lưu</button>
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-gray-500">{label}</div>
+      <div className="mt-1 text-gray-900">{value}</div>
+    </div>
+  );
+}
+
+function DetailField({ label, value, link = false }: { label: string; value: string; link?: boolean }) {
+  return (
+    <div className="border-b border-blue-100 pb-1">
+      <div>{label}</div>
+      <div className={`mt-1 text-xs ${link ? 'text-blue-600' : 'text-gray-900'}`}>{value}</div>
     </div>
   );
 }
