@@ -211,3 +211,95 @@ export const cashierPaymentMethods = [
   'Trả góp',
   'Kết hợp nhiều phương thức',
 ] as const;
+
+export interface TreatmentPackageSessionItem {
+  id: string;
+  itemId: string;
+  name: string;
+  packageName: string;
+  quantity: number;
+}
+
+export interface TreatmentSaleProductItem {
+  id: string;
+  itemId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface TreatmentUsedProductItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  stockStatus: 'deducted' | 'pending';
+}
+
+export interface TreatmentSessionDraft {
+  id: string;
+  draftInvoiceId: string;
+  customerId: string;
+  treatmentName: string;
+  sessionNumber: number;
+  totalSessions: number;
+  date: string;
+  status: 'draft' | 'done' | 'locked';
+  therapist: string;
+  createdBy: string;
+  skinCondition: string;
+  reaction: string;
+  nextAppointment: string;
+  note: string;
+  aftercare: string;
+  packageSessions: TreatmentPackageSessionItem[];
+  saleProducts: TreatmentSaleProductItem[];
+  usedProducts: TreatmentUsedProductItem[];
+}
+
+export const pendingTreatmentDrafts: TreatmentSessionDraft[] = [
+  {
+    id: 'TS-240423-001',
+    draftInvoiceId: 'HDN-240423-001',
+    customerId: '4',
+    treatmentName: '5 buổi Laser công nghệ cao (Tặng)',
+    sessionNumber: 2,
+    totalSessions: 5,
+    date: '19/05/2026',
+    status: 'done',
+    therapist: 'Nguyễn Thị Hoa',
+    createdBy: 'Admin User',
+    skinCondition: 'Da hơi đỏ nhẹ sau laser, vùng má phục hồi tốt.',
+    reaction: 'Khách phản ứng bình thường, không rát kéo dài.',
+    nextAppointment: '26/05/2026',
+    note: 'Dặn khách tránh nắng mạnh trong 48 giờ.',
+    aftercare: 'Dùng kem phục hồi buổi tối và chống nắng SPF50 ban ngày.',
+    packageSessions: [
+      {
+        id: 'pkg-session-1',
+        itemId: 'owned-pkg-1',
+        name: 'Buổi Laser công nghệ cao',
+        packageName: '5 buổi Laser công nghệ cao (Tặng)',
+        quantity: 1,
+      },
+    ],
+    saleProducts: [
+      {
+        id: 'sale-1',
+        itemId: 'prd-2',
+        name: 'Kem chống nắng SPF50+',
+        quantity: 1,
+        unitPrice: 450000,
+      },
+    ],
+    usedProducts: [
+      {
+        id: 'used-1',
+        name: 'AMORA-PINK PLUS 5DAY NATURAL PINK NIPPLE CREAM - Bộ kem làm hồng',
+        quantity: 1,
+        unit: 'lần dùng',
+        stockStatus: 'deducted',
+      },
+    ],
+  },
+];

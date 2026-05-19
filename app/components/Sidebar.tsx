@@ -16,7 +16,7 @@ const menuItems = [
   { icon: 'Calendar', label: 'Lịch hẹn', path: '#' },
   { icon: 'Tag', label: 'Thẻ tag', path: '/tags' },
   { icon: 'Route', label: 'Liệu trình', path: '#' },
-  { icon: 'ClipboardList', label: 'Ghi nhận điều trị', path: '#' },
+  { icon: 'ClipboardList', label: 'Ghi nhận điều trị', path: '/treatment-session' },
   { icon: 'Package', label: 'Gói điều trị', path: '#' },
   { icon: 'ShoppingBag', label: 'Sản phẩm', path: '#' },
   { icon: 'ShoppingCart', label: 'Sản phẩm đã bán', path: '#' },

@@ -4,6 +4,7 @@ import { Header } from './Header';
 
 const titleMap: Record<string, string> = {
   '/customers': 'Khách hàng',
+  '/treatment-session': 'Ghi nhận điều trị',
   '/cashier': 'Thu ngân',
   '/cashbook': 'Sổ quỹ',
   '/settings': 'Cài đặt',

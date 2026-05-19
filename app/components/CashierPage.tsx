@@ -17,6 +17,7 @@ import {
   cashierPurchasedPackages,
   cashierStaffs,
   customers,
+  pendingTreatmentDrafts,
   type CashierCatalogItem,
 } from '../data/mockData';
 import { CustomerModal } from './CustomerModal';
@@ -71,7 +72,12 @@ interface OrderLine {
   performerId: string;
   consultantId: string;
   quantity: number;
+  unitPrice: number;
   note: string;
+  source: 'manual' | 'treatment';
+  sourceSessionId?: string;
+  sourceLineId?: string;
+  isCashierModified: boolean;
 }
 
 const baseTabs = ['Dịch vụ', 'Gói dịch vụ', 'Thẻ tài khoản', 'Sản phẩm'] as const;
@@ -115,14 +121,61 @@ const createOrderLine = (itemId: string): OrderLine => ({
   performerId: cashierStaffs.find((staff) => staff.role === 'Kỹ thuật viên')?.id || cashierStaffs[0].id,
   consultantId: cashierStaffs.find((staff) => staff.role === 'Tư vấn')?.id || cashierStaffs[0].id,
   quantity: 1,
+  unitPrice: cashierCatalogItems.find((item) => item.id === itemId)?.price || 0,
   note: '',
+  source: 'manual',
+  isCashierModified: false,
 });
 
+const getDraftOrderLines = (draftId: string): OrderLine[] => {
+  const draft = pendingTreatmentDrafts.find((item) => item.id === draftId);
+  if (!draft) return [];
+
+  const defaultPerformerId =
+    cashierStaffs.find((staff) => staff.name === draft.therapist)?.id ||
+    cashierStaffs.find((staff) => staff.role === 'Kỹ thuật viên')?.id ||
+    cashierStaffs[0].id;
+  const defaultConsultantId =
+    cashierStaffs.find((staff) => staff.role === 'Tư vấn')?.id ||
+    cashierStaffs[0].id;
+
+  return [
+    ...draft.packageSessions.map((item) => ({
+      id: `${draft.id}-${item.id}`,
+      itemId: item.itemId,
+      performerId: defaultPerformerId,
+      consultantId: defaultConsultantId,
+      quantity: item.quantity,
+      unitPrice: 0,
+      note: `KTV đề xuất từ buổi điều trị ${draft.sessionNumber}/${draft.totalSessions}`,
+      source: 'treatment' as const,
+      sourceSessionId: draft.id,
+      sourceLineId: item.id,
+      isCashierModified: false,
+    })),
+    ...draft.saleProducts.map((item) => ({
+      id: `${draft.id}-${item.id}`,
+      itemId: item.itemId,
+      performerId: defaultPerformerId,
+      consultantId: defaultConsultantId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      note: `Sản phẩm bán do KTV đề xuất từ buổi điều trị ${draft.sessionNumber}/${draft.totalSessions}`,
+      source: 'treatment' as const,
+      sourceSessionId: draft.id,
+      sourceLineId: item.id,
+      isCashierModified: false,
+    })),
+  ];
+};
+
 export function CashierPage() {
+  const firstPendingDraft = pendingTreatmentDrafts[0] || null;
   const [activeTab, setActiveTab] = useState<CashierTab>('Dịch vụ');
   const [catalogQuery, setCatalogQuery] = useState('');
   const [customerQuery, setCustomerQuery] = useState('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(firstPendingDraft?.customerId || null);
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(firstPendingDraft?.id || null);
   const [discount, setDiscount] = useState(0);
   const [extraFee, setExtraFee] = useState(0);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -135,9 +188,7 @@ export function CashierPage() {
   const [paymentNote, setPaymentNote] = useState('');
   const [isPaymentNoteOpen, setIsPaymentNoteOpen] = useState(false);
   const [customerSource, setCustomerSource] = useState<(typeof customerSourceOptions)[number]>('Khách đến trực tiếp');
-  const [orderLines, setOrderLines] = useState<OrderLine[]>([
-    
-  ]);
+  const [orderLines, setOrderLines] = useState<OrderLine[]>(firstPendingDraft ? getDraftOrderLines(firstPendingDraft.id) : []);
 
   const matchedCustomers = useMemo(() => {
     const normalizedQuery = customerQuery.trim().toLowerCase();
@@ -151,6 +202,8 @@ export function CashierPage() {
     matchedCustomers.find((customer) => customer.id === selectedCustomerId) ||
     customers.find((customer) => customer.id === selectedCustomerId) ||
     null;
+  const activeDraft = pendingTreatmentDrafts.find((draft) => draft.id === activeDraftId) || null;
+  const pendingDraftCustomerIds = new Set(pendingTreatmentDrafts.map((draft) => draft.customerId));
 
   const availableTabs: CashierTab[] = selectedCustomer ? [...baseTabs, 'Gói đã mua'] : [...baseTabs];
 
@@ -188,7 +241,7 @@ export function CashierPage() {
       cashierCatalogItems.find((catalogItem) => catalogItem.id === line.itemId) ||
       purchasedPackageItems.find((catalogItem) => catalogItem.id === line.itemId) ||
       cashierCatalogItems[0];
-    const amount = item.price * line.quantity;
+    const amount = line.unitPrice * line.quantity;
     return { ...line, item, amount };
   });
 
@@ -202,6 +255,16 @@ export function CashierPage() {
   const updateLine = (lineId: string, patch: Partial<OrderLine>) => {
     setOrderLines((current) =>
       current.map((line) => (line.id === lineId ? { ...line, ...patch } : line)),
+    );
+  };
+
+  const updateCommercialLine = (lineId: string, patch: Partial<OrderLine>) => {
+    setOrderLines((current) =>
+      current.map((line) =>
+        line.id === lineId
+          ? { ...line, ...patch, isCashierModified: line.source === 'treatment' ? true : line.isCashierModified }
+          : line,
+      ),
     );
   };
 
@@ -252,6 +315,21 @@ export function CashierPage() {
   const clearSelectedCustomer = () => {
     setSelectedCustomerId(null);
     setCustomerQuery('');
+    setActiveDraftId(null);
+    if (activeTab === 'Gói đã mua') {
+      setActiveTab('Dịch vụ');
+    }
+  };
+
+  const loadPendingDraft = (draftId: string) => {
+    const draft = pendingTreatmentDrafts.find((item) => item.id === draftId);
+    if (!draft) return;
+    setActiveDraftId(draft.id);
+    setSelectedCustomerId(draft.customerId);
+    setCustomerQuery('');
+    setOrderLines(getDraftOrderLines(draft.id));
+    setDiscount(0);
+    setExtraFee(0);
     if (activeTab === 'Gói đã mua') {
       setActiveTab('Dịch vụ');
     }
@@ -276,7 +354,7 @@ export function CashierPage() {
               <div class="muted">${escapeHtml(line.item.subtitle || '')}</div>
             </td>
             <td>${line.quantity}</td>
-            <td>${formatNumber(line.item.price)}</td>
+            <td>${formatNumber(line.unitPrice)}</td>
             <td>${formatNumber(line.amount)}</td>
           </tr>
         `,
@@ -480,6 +558,49 @@ export function CashierPage() {
 
   return (
     <div className="min-h-full bg-gradient-to-b from-slate-50 via-rose-50/20 to-blue-50/50 p-3 xl:p-4">
+      <div className="mb-3 rounded-2xl border border-blue-100 bg-white p-3 shadow-sm">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm text-gray-900">Khách chờ thanh toán hôm nay</div>
+            <div className="text-xs text-gray-500">
+              Dữ liệu do KTV lưu từ buổi điều trị; sản phẩm sử dụng chỉ trừ kho, không lên hóa đơn.
+            </div>
+          </div>
+          <Badge className="border-blue-200 bg-blue-50 text-blue-700">
+            {pendingTreatmentDrafts.length} hóa đơn nháp
+          </Badge>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {pendingTreatmentDrafts.map((draft) => {
+            const draftCustomer = customers.find((customer) => customer.id === draft.customerId);
+            const draftTotal = draft.saleProducts.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+            const isActive = activeDraftId === draft.id;
+            return (
+              <button
+                key={draft.id}
+                onClick={() => loadPendingDraft(draft.id)}
+                className={`min-w-[240px] rounded-xl border px-3 py-2 text-left transition-colors ${
+                  isActive
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50/40'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-sm">{draftCustomer?.name || 'Khách hàng'}</span>
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-500">{draft.draftInvoiceId}</span>
+                </div>
+                <div className="mt-0.5 truncate text-xs opacity-75">
+                  Buổi {draft.sessionNumber}/{draft.totalSessions} • {draft.therapist}
+                </div>
+                <div className="mt-1 text-xs">
+                  Sản phẩm bán: <span className="font-medium">{formatCurrency(draftTotal)}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-0 overflow-hidden rounded-[22px] border border-rose-100 bg-white shadow-sm xl:grid-cols-[420px_minmax(0,1fr)]">
         <Card className="gap-0 rounded-none border-0 border-r border-r-gray-200 bg-white shadow-none">
           <CardContent className="p-4">
@@ -608,6 +729,23 @@ export function CashierPage() {
                 </div>
               ) : null}
 
+              {activeDraft ? (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-gray-900">Hóa đơn nháp từ buổi điều trị</div>
+                      <div className="mt-1 text-xs text-gray-600">
+                        {activeDraft.draftInvoiceId} • {activeDraft.treatmentName} • Buổi {activeDraft.sessionNumber}/{activeDraft.totalSessions}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500">
+                        Sản phẩm sử dụng đã trừ kho: {activeDraft.usedProducts.map((item) => item.name).join(', ')}
+                      </div>
+                    </div>
+                    <Badge className="shrink-0 border-amber-200 bg-white text-amber-700">KTV đề xuất</Badge>
+                  </div>
+                </div>
+              ) : null}
+
               {customerQuery && (
                 <div className="mb-4 rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
                   {matchedCustomers.length > 0 ? (
@@ -615,7 +753,10 @@ export function CashierPage() {
                       {matchedCustomers.map((customer) => (
                         <button
                           key={customer.id}
-                          onClick={() => setSelectedCustomerId(customer.id)}
+                          onClick={() => {
+                            setSelectedCustomerId(customer.id);
+                            setActiveDraftId(null);
+                          }}
                           className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${
                             selectedCustomerId === customer.id
                               ? 'bg-blue-50 text-blue-600'
@@ -623,7 +764,12 @@ export function CashierPage() {
                           }`}
                         >
                           <div>
-                            <div className="text-sm text-gray-900">{customer.name}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm text-gray-900">{customer.name}</div>
+                              {pendingDraftCustomerIds.has(customer.id) && (
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-600">Đang chờ thu</span>
+                              )}
+                            </div>
                             <div className="text-xs text-gray-500">{customer.code} • {customer.phone}</div>
                           </div>
                           <div className="text-xs text-gray-500">
@@ -689,6 +835,14 @@ export function CashierPage() {
                             <div className="min-w-0">
                               <div className="line-clamp-2 text-sm text-gray-900">{line.item.name}</div>
                               <div className="text-xs text-gray-400">{line.item.subtitle}</div>
+                              <div className="mt-1 flex flex-wrap gap-1.5">
+                                {line.source === 'treatment' && (
+                                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-600">Từ buổi điều trị</span>
+                                )}
+                                {line.isCashierModified && (
+                                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">Thu ngân đã chỉnh</span>
+                                )}
+                              </div>
                               {line.note && <div className="mt-1 text-xs text-blue-600">Ghi chú: {line.note}</div>}
                             </div>
                           </div>
@@ -734,21 +888,28 @@ export function CashierPage() {
                         <TableCell className="px-3 py-4">
                           <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1">
                             <button
-                              onClick={() => updateLine(line.id, { quantity: Math.max(1, line.quantity - 1) })}
+                              onClick={() => updateCommercialLine(line.id, { quantity: Math.max(1, line.quantity - 1) })}
                               className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                             >
                               <Minus className="h-3.5 w-3.5" />
                             </button>
                             <span className="min-w-8 text-center text-sm text-gray-900">{line.quantity}</span>
                             <button
-                              onClick={() => updateLine(line.id, { quantity: line.quantity + 1 })}
+                              onClick={() => updateCommercialLine(line.id, { quantity: line.quantity + 1 })}
                               className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                             >
                               <Plus className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </TableCell>
-                        <TableCell className="px-3 py-4 text-sm text-gray-700">{formatCurrency(line.item.price)}</TableCell>
+                        <TableCell className="px-3 py-4">
+                          <Input
+                            type="number"
+                            value={line.unitPrice}
+                            onChange={(event) => updateCommercialLine(line.id, { unitPrice: Number(event.target.value) || 0 })}
+                            className="h-9 min-w-[120px] rounded-lg bg-white text-right text-sm"
+                          />
+                        </TableCell>
                         <TableCell className="px-3 py-4 text-sm text-gray-900">{formatCurrency(line.amount)}</TableCell>
                         <TableCell className="px-3 py-4">
                           <div className="flex items-center gap-2">
@@ -875,7 +1036,7 @@ export function CashierPage() {
                           {line.note && <div className="mt-1 text-xs text-blue-600">{line.note}</div>}
                         </TableCell>
                         <TableCell className="px-5 py-4 text-sm text-gray-700">{line.quantity}</TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-gray-700">{formatCurrency(line.item.price)}</TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-gray-700">{formatCurrency(line.unitPrice)}</TableCell>
                         <TableCell className="px-5 py-4 text-sm text-gray-900">{formatCurrency(line.amount)}</TableCell>
                       </TableRow>
                     ))}
