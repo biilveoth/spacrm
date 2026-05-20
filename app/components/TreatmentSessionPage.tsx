@@ -29,6 +29,7 @@ export function TreatmentSessionPage() {
   const [nextAppointment, setNextAppointment] = useState('2026-05-26');
   const [note, setNote] = useState(pendingTreatmentDrafts[0]?.note || '');
   const [aftercare, setAftercare] = useState(pendingTreatmentDrafts[0]?.aftercare || '');
+  const [saved, setSaved] = useState(false);
 
   const draft = pendingTreatmentDrafts[0];
   const customer = customers.find((item) => item.id === draft.customerId) || customers[0];
@@ -36,7 +37,8 @@ export function TreatmentSessionPage() {
   const saleTotal = draft.saleProducts.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
   const saveSession = () => {
-    navigate('/cashier');
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2400);
   };
 
   return (
@@ -203,6 +205,12 @@ export function TreatmentSessionPage() {
 
               <FieldArea label="Ghi chú" value={note} onChange={setNote} placeholder="Ghi chú thêm về buổi điều trị..." />
               <FieldArea label="Chăm sóc sau bán" value={aftercare} onChange={setAftercare} placeholder="Nhập thông tin chăm sóc sau bán..." />
+
+              {saved && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                  Đã lưu buổi điều trị. Hóa đơn nháp của khách đã được cập nhật ở Thu ngân.
+                </div>
+              )}
 
               <Button onClick={saveSession} className="h-11 w-full rounded-lg bg-blue-600 text-white hover:bg-blue-700">
                 <Save className="h-4 w-4" />
